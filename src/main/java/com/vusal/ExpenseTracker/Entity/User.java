@@ -18,7 +18,7 @@ import java.util.List;
 public class User {
     @GeneratedValue
     @Id
-    BigInteger id;
+    Long id;
     String name;
     String surname;
     String email;

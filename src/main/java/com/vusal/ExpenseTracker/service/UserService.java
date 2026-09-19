@@ -1,6 +1,7 @@
 package com.vusal.ExpenseTracker.service;
 
 import com.vusal.ExpenseTracker.Entity.User;
+import com.vusal.ExpenseTracker.dto.UserRequestDto;
 import com.vusal.ExpenseTracker.repos.UserRepo;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,7 @@ public class UserService {                                           //this , us
     public User getUser(Long id){
         return userRepo.findById(id).orElseThrow();
     }
-    public void createUser(User user){
+    public void saveUser(User user){
         userRepo.save(user);
     }
     public void deleteUser(Long id){
@@ -24,8 +25,8 @@ public class UserService {                                           //this , us
 
 
 
-    public void updateUser(User user,Long Id){
-       User existingUser = userRepo.findById(Id).orElseThrow();
+    public void updateUser(UserRequestDto user, Long id){
+       User existingUser = userRepo.findById(id).orElseThrow();
        existingUser.setName(user.getName());
        existingUser.setEmail(user.getEmail());
        existingUser.setSurname(user.getSurname());

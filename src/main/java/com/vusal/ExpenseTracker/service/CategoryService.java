@@ -1,6 +1,7 @@
 package com.vusal.ExpenseTracker.service;
 
 import com.vusal.ExpenseTracker.Entity.Category;
+import com.vusal.ExpenseTracker.dto.CategoryRequestDto;
 import com.vusal.ExpenseTracker.repos.CategoryRepo;
 import org.springframework.stereotype.Service;
 
@@ -13,13 +14,13 @@ public class CategoryService {
     public Category getCategory(Long id){
        return categoryRepo.findById(id).orElseThrow();
     }
-    public void createCategory(Category category){
+    public void saveCategory(Category category){
         categoryRepo.save(category);
     }
     public void deleteCategory(Long iD){
         categoryRepo.deleteById(iD);
     }
-    public void updateCategory(Category category,Long id){
+    public void updateCategory(CategoryRequestDto category, Long id){
         Category existingCategory = categoryRepo.findById(id).orElseThrow();
         existingCategory.setName(category.getName());
         categoryRepo.save(existingCategory);
