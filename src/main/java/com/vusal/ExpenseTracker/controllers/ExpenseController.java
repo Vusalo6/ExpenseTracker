@@ -6,11 +6,7 @@ import com.vusal.ExpenseTracker.Entity.User;
 import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
 import com.vusal.ExpenseTracker.dto.ExpenseResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
-import com.vusal.ExpenseTracker.repos.ExpenseRepo;
-import com.vusal.ExpenseTracker.repos.UserRepo;
-import com.vusal.ExpenseTracker.service.CategoryService;
 import com.vusal.ExpenseTracker.service.ExpenseService;
-import com.vusal.ExpenseTracker.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -58,70 +54,39 @@ public class ExpenseController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) LocalDate date) {
 
+        User user = expenseService.findUserById(userId);
+        Category category= expenseService.findCategoryById(categoryId);
+        List<Expense> expenses ;
+        List<ExpenseResponseDto> responseDtoList = new ArrayList<>();
 
-        User user = expenseService.findUserById(userId);//the user for finding expense
-        List <ExpenseResponseDto> responseDtoList  = new ArrayList<>(); //the list ResponseDto's will be saved and returned
-//        ExpenseResponseDto responseDto =new ExpenseResponseDto(); //the ResponseDto object
-
-        if (categoryId!=null && date!=null){
-            Category category=expenseService.findCategoryById(categoryId);
-            List<Expense> tempEx= expenseService.findByUserAndCategoryAndTime(user,category,date);
-            for (Expense e:tempEx){
-                ExpenseResponseDto responseDto =new ExpenseResponseDto();
-                responseDto.setId(e.getId());
-                responseDto.setDescription(e.getDescription());
-                responseDto.setDate(e.getDate());
-                responseDto.setAmount(e.getAmount());
-                responseDto.setCategoryName(e.getCategory().getName());
-                responseDtoList.add(responseDto);
-            }
-        }
-
-
-
-        else if (categoryId != null ) {
-
-            Category category = expenseService.findCategoryById(categoryId);
-            List<Expense> expenses = expenseService.findByUserAndCategory(user,category);
-            for (Expense e :expenses){
-                ExpenseResponseDto responseDto =new ExpenseResponseDto();
-                responseDto.setId(e.getId());
-                responseDto.setDescription(e.getDescription());
-                responseDto.setDate(e.getDate());
-                responseDto.setAmount(e.getAmount());
-                responseDto.setCategoryName(e.getCategory().getName());
-                responseDtoList.add(responseDto);
-            }
+        if ( categoryId !=null && date !=null) {
+            expenses= expenseService.findByUserAndCategoryAndTime(user,category,date);
 
         }
+        else if(categoryId !=null){
+            expenses = expenseService.findByUserAndCategory(user,category);
 
-         else if (date != null ) {
-            List<Expense> expenses = expenseService.findByUserAndDate(user, date);
-             for(Expense e: expenses){
-                 ExpenseResponseDto responseDto =new ExpenseResponseDto();
-                 responseDto.setId(e.getId());
-                 responseDto.setDescription(e.getDescription());
-                 responseDto.setDate(e.getDate());
-                 responseDto.setAmount(e.getAmount());
-                 responseDto.setCategoryName(e.getCategory().getName());
-                 responseDtoList.add(responseDto);
-             }
+        }
+        else if (date!=null){
+            expenses=expenseService.findByUserAndDate(user,date);
         }
         else {
-            List<Expense> expenses = expenseService.findByUser(user);
-            for (Expense e :expenses){
-                ExpenseResponseDto responseDto =new ExpenseResponseDto();
-                responseDto.setId(e.getId());
-                responseDto.setDescription(e.getDescription());
-                responseDto.setDate(e.getDate());
-                responseDto.setAmount(e.getAmount());
-                responseDto.setCategoryName(e.getCategory().getName());
-                responseDtoList.add(responseDto);
-            }
+            expenses=expenseService.findByUser(user);
+        }
+        for(Expense e: expenses){
+            ExpenseResponseDto responseDto= new ExpenseResponseDto();
+            responseDto.setId(e.getId());
+            responseDto.setDate(e.getDate());
+            responseDto.setAmount(e.getAmount());
+            responseDto.setDescription(e.getDescription());
+            responseDto.setCategoryName(e.getCategory().getName());
+            responseDtoList.add(responseDto);
+
         }
         return responseDtoList;
-        }
+
     }
+}
 
 
 

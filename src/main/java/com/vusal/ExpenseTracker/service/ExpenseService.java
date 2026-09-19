@@ -4,7 +4,6 @@ import com.vusal.ExpenseTracker.Entity.Category;
 import com.vusal.ExpenseTracker.Entity.Expense;
 import com.vusal.ExpenseTracker.Entity.User;
 import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
-import com.vusal.ExpenseTracker.dto.ExpenseResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
 import com.vusal.ExpenseTracker.repos.CategoryRepo;
 import com.vusal.ExpenseTracker.repos.ExpenseRepo;
@@ -72,6 +71,9 @@ public class ExpenseService { //Dependency injection in Constructions
         return expenseRepo.findByUserAndCategoryAndDate(user,category,time);
     }
     public Category findCategoryById(Long id){
+        if (id == null) {
+            return null;
+        }
        return categoryRepo.findById(id).orElseThrow();
     }
     public User findUserById(Long id){
