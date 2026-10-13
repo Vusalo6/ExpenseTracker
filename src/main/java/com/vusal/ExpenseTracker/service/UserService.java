@@ -2,6 +2,7 @@ package com.vusal.ExpenseTracker.service;
 
 import com.vusal.ExpenseTracker.Entity.User;
 import com.vusal.ExpenseTracker.dto.UserRequestDto;
+import com.vusal.ExpenseTracker.exception.ResourceNotFoundException;
 import com.vusal.ExpenseTracker.repos.UserRepo;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,7 @@ public class UserService {                                           //this , us
     }
 
     public User getUser(Long id){
-        return userRepo.findById(id).orElseThrow();
+        return userRepo.findById(id).orElseThrow(()-> new ResourceNotFoundException("User with this iD doesnt exist"));
     }
     public void saveUser(User user){
         userRepo.save(user);

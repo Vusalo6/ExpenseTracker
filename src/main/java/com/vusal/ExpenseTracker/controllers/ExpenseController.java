@@ -3,12 +3,17 @@ package com.vusal.ExpenseTracker.controllers;
 import com.vusal.ExpenseTracker.Entity.Category;
 import com.vusal.ExpenseTracker.Entity.Expense;
 import com.vusal.ExpenseTracker.Entity.User;
+import com.vusal.ExpenseTracker.dto.ExpenseListResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
 import com.vusal.ExpenseTracker.dto.ExpenseResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
+import com.vusal.ExpenseTracker.enums.Period;
 import com.vusal.ExpenseTracker.service.ExpenseService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,57 +41,86 @@ public class ExpenseController {
                 expense.getDate(),
                 expense.getId());
     }
+
+
     @PostMapping
-    public void createExpense(@RequestBody ExpenseRequestDto expense){
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createExpense(@Valid @RequestBody ExpenseRequestDto expense){
        expenseService.createExpense(expense);
     }
     @PutMapping("/{id}")
-    public void updateExpense(@RequestBody ExpenseUpdateDto expense, @PathVariable Long id){
+    public void updateExpense(@Valid @RequestBody ExpenseUpdateDto expense, @PathVariable Long id){
         expenseService.updateExpense(expense, id);
     }
+
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteExpense(@PathVariable Long id){
         expenseService.deleteExpense(id);
     }
+
     @GetMapping("/user/{userId}/expenses")
-    public List<ExpenseResponseDto> getExpenses(
+    public ExpenseListResponseDto getExpenses(
             @PathVariable Long userId,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false)Period period,
             @RequestParam(required = false) LocalDate date) {
+        if (date != null && period != null) {
+            throw new IllegalArgumentException("date and period cannot be used together");
+        }
 
         User user = expenseService.findUserById(userId);
-        Category category= expenseService.findCategoryById(categoryId);
-        List<Expense> expenses ;
+        Category category = expenseService.findCategoryById(categoryId);
+        List<Expense> expenses;
         List<ExpenseResponseDto> responseDtoList = new ArrayList<>();
 
-        if ( categoryId !=null && date !=null) {
-            expenses= expenseService.findByUserAndCategoryAndTime(user,category,date);
+        if (categoryId != null && date != null) {
 
-        }
-        else if(categoryId !=null){
-            expenses = expenseService.findByUserAndCategory(user,category);
+            expenses = expenseService.findByUserAndCategoryAndDate(user, category, date
+            );
 
+        } else if (categoryId != null) {
+
+            expenses = expenseService.findByUserAndCategory(user, category);
+
+        } else if (date != null) {
+
+            expenses = expenseService.findByUserAndDate(user, date);
+
+        } else if (period != null) {
+
+            expenses = switch (period) {
+                case THIS_WEEK -> expenseService.getThisWeekExpenses(user);
+                case LAST_WEEK -> expenseService.getLastWeekExpenses(user);
+                case THIS_MONTH -> expenseService.getThisMonthExpenses(user);
+                case LAST_MONTH -> expenseService.getLastMonthExpenses(user);
+            };
+
+        } else {
+
+            expenses = expenseService.findByUser(user);
         }
-        else if (date!=null){
-            expenses=expenseService.findByUserAndDate(user,date);
-        }
-        else {
-            expenses=expenseService.findByUser(user);
-        }
-        for(Expense e: expenses){
-            ExpenseResponseDto responseDto= new ExpenseResponseDto();
+
+        BigDecimal total = expenseService.getTotal(expenses);
+
+        for (Expense e : expenses) {
+            ExpenseResponseDto responseDto = new ExpenseResponseDto();
+
             responseDto.setId(e.getId());
             responseDto.setDate(e.getDate());
             responseDto.setAmount(e.getAmount());
             responseDto.setDescription(e.getDescription());
             responseDto.setCategoryName(e.getCategory().getName());
+
             responseDtoList.add(responseDto);
+        }
+
+        return new ExpenseListResponseDto(responseDtoList, total);
 
         }
-        return responseDtoList;
-
     }
-}
+
+
 
 
 

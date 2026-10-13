@@ -2,6 +2,7 @@ package com.vusal.ExpenseTracker.service;
 
 import com.vusal.ExpenseTracker.Entity.Category;
 import com.vusal.ExpenseTracker.dto.CategoryRequestDto;
+import com.vusal.ExpenseTracker.exception.ResourceNotFoundException;
 import com.vusal.ExpenseTracker.repos.CategoryRepo;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +13,7 @@ public class CategoryService {
         this.categoryRepo=categoryRepo;
     }
     public Category getCategory(Long id){
-       return categoryRepo.findById(id).orElseThrow();
+       return categoryRepo.findById(id).orElseThrow(()->new ResourceNotFoundException("Category with this iD doesnt exist"));
     }
     public void saveCategory(Category category){
         categoryRepo.save(category);

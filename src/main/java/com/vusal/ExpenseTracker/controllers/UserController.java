@@ -3,6 +3,8 @@ import com.vusal.ExpenseTracker.Entity.User;
 import com.vusal.ExpenseTracker.dto.UserRequestDto;
 import com.vusal.ExpenseTracker.dto.UserResponseDto;
 import com.vusal.ExpenseTracker.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,8 +24,10 @@ public class UserController {
                 user.getSurname(),
                 user.getEmail());
     }
+
     @PostMapping
-    public void createUser(@RequestBody UserRequestDto user){
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createUser(@Valid @RequestBody UserRequestDto user){
         User newUser = new User();
         newUser.setName(user.getName());
         newUser.setEmail(user.getEmail());
@@ -31,10 +35,12 @@ public class UserController {
         userService.saveUser(newUser);
     }
     @PutMapping("/{id}")
-    public void updateUser(@RequestBody UserRequestDto user,@PathVariable Long id){
+    public void updateUser(@Valid @RequestBody UserRequestDto user,@PathVariable Long id){
         userService.updateUser(user,id);
     }
+
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long id){
         userService.deleteUser(id);
     }

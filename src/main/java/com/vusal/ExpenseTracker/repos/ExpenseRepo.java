@@ -6,6 +6,7 @@ import com.vusal.ExpenseTracker.Entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 public interface ExpenseRepo extends JpaRepository<Expense,Long> {
@@ -13,5 +14,6 @@ public interface ExpenseRepo extends JpaRepository<Expense,Long> {
     List<Expense> findByUserAndCategory(User user, Category category);
     List<Expense> findByUserAndDate(User user, LocalDate time);
     List<Expense> findByUserAndCategoryAndDate(User user,Category category,LocalDate time);
+    List<Expense> findByUserAndDateBetween(User user, LocalDate fromDate,LocalDate toDate);
 
 }
