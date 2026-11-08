@@ -8,9 +8,12 @@ import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
 import com.vusal.ExpenseTracker.dto.ExpenseResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
 import com.vusal.ExpenseTracker.enums.Period;
+import com.vusal.ExpenseTracker.repos.UserRepo;
 import com.vusal.ExpenseTracker.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -23,40 +26,48 @@ import java.util.List;
 public class ExpenseController {
     private final ExpenseService expenseService;
 
-
     public ExpenseController(ExpenseService expenseService) {
         this.expenseService = expenseService;
 
     }
     @GetMapping("/{id}")
-    public ExpenseResponseDto getExpense(@PathVariable Long id){
-       Expense expense = expenseService.getExpense(id);
-       Category category = expense.getCategory();
-       String categoryName = category.getName();
+    public ExpenseResponseDto getExpense(@PathVariable Long id,@AuthenticationPrincipal Jwt jwt){
+       Expense expense = expenseService.returnExpenseForUser(id,jwt.getSubject());
 
         return new ExpenseResponseDto(
                 expense.getAmount(),
-                categoryName,
+                expense.getCategory().getName(),
                 expense.getDescription(),
                 expense.getDate(),
                 expense.getId());
     }
 
+    @GetMapping("/me/expenses")
+    public ExpenseListResponseDto getExpenses(@AuthenticationPrincipal Jwt jwt){
+    return expenseService.getExpensesForAuthenticatedUser(jwt.getSubject());
+
+
+    }
+
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createExpense(@Valid @RequestBody ExpenseRequestDto expense){
-       expenseService.createExpense(expense);
+    public void createExpense(
+            @RequestBody
+            @Valid
+            ExpenseRequestDto expenseRequestDto,
+            @AuthenticationPrincipal Jwt jwt) {
+       expenseService.createExpense(expenseRequestDto,jwt.getSubject());
     }
     @PutMapping("/{id}")
-    public void updateExpense(@Valid @RequestBody ExpenseUpdateDto expense, @PathVariable Long id){
-        expenseService.updateExpense(expense, id);
+    public void updateExpense(@Valid @RequestBody ExpenseUpdateDto expense, @PathVariable Long id,@AuthenticationPrincipal Jwt jwt){
+        expenseService.updateExpense(expense, id,jwt.getSubject());
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteExpense(@PathVariable Long id){
-        expenseService.deleteExpense(id);
+    public void deleteExpense(@PathVariable Long id,@AuthenticationPrincipal Jwt jwt){
+        expenseService.deleteExpense(id,jwt.getSubject());
     }
 
     @GetMapping("/user/{userId}/expenses")

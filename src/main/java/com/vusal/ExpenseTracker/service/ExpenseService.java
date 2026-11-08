@@ -2,7 +2,9 @@ package com.vusal.ExpenseTracker.service;
 import com.vusal.ExpenseTracker.Entity.Category;
 import com.vusal.ExpenseTracker.Entity.Expense;
 import com.vusal.ExpenseTracker.Entity.User;
+import com.vusal.ExpenseTracker.dto.ExpenseListResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
+import com.vusal.ExpenseTracker.dto.ExpenseResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
 import com.vusal.ExpenseTracker.exception.ResourceNotFoundException;
 import com.vusal.ExpenseTracker.repos.CategoryRepo;
@@ -17,7 +19,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
 @Service
-public class ExpenseService { //Dependency injection in Constructions
+public class ExpenseService {
     private final ExpenseRepo expenseRepo;
     private final UserRepo userRepo;
     private final CategoryRepo categoryRepo;
@@ -28,10 +30,6 @@ public class ExpenseService { //Dependency injection in Constructions
         this.userRepo=userRepo;
         this.categoryRepo=categoryRepo;
     }
-    public Expense getExpense(Long id){
-       return expenseRepo.findById(id).orElseThrow(()->new ResourceNotFoundException("Expense with this iD doesnt exist"));
-
-    }
     public BigDecimal getTotal(List<Expense> expenses){
         BigDecimal total = BigDecimal.ZERO;
 
@@ -40,34 +38,75 @@ public class ExpenseService { //Dependency injection in Constructions
         }
         return total;
     }
+    public ExpenseListResponseDto getExpensesForAuthenticatedUser(String email) {
 
-    public void createExpense(ExpenseRequestDto expense){
+        User user = userRepo.findUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with email: " + email
+                ));
+
+        List<Expense> expenses = expenseRepo.findByUser(user);
+
+        List<ExpenseResponseDto> responseDtos = expenses.stream()
+                .map(e -> new ExpenseResponseDto(
+                        e.getAmount(),
+                        e.getCategory().getName(),
+                        e.getDescription(),
+                        e.getDate(),
+                        e.getId()
+                ))
+                .toList();
+
+        BigDecimal total = getTotal(expenses);
+
+        return new ExpenseListResponseDto(responseDtos, total);
+    }
+    public Expense returnExpenseForUser(Long id,String email){
+       return expenseRepo.findByIdAndUser_Email(id,email).orElseThrow(()->new ResourceNotFoundException("Expense not found "));
+
+    }
+
+
+
+    public void createExpense(ExpenseRequestDto expense,String email){
+        User user = userRepo.findUserByEmail(email).orElseThrow(()->new ResourceNotFoundException("The user with this email doesnt exist"));
         Expense newExpense= new Expense();
         newExpense.setUser(
-                findUserById(expense.getUserId())
+                user
         );
+        Category category= findCategoryById(expense.getCategoryId());
 
-        newExpense.setCategory(
-                findCategoryById(expense.getCategoryId())
-        );
+        newExpense.setCategory(category);
 
-        newExpense.setDescription(expense.getDescription());
-        newExpense.setDate(expense.getDate());
-        newExpense.setAmount(expense.getAmount());
+        newExpense
+                .setDescription(expense.getDescription());
+        newExpense.
+                setDate(expense.getDate());
+        newExpense
+                .setAmount(expense.getAmount());
 
         expenseRepo.save(newExpense);
     }
-    public void updateExpense(ExpenseUpdateDto expense, Long id){
-        Expense existingExpense = expenseRepo.findById(id).orElseThrow();
-        Category category = findCategoryById(expense.getCategoryId());
-        existingExpense.setCategory(category);
-        existingExpense.setAmount(expense.getAmount());
-        existingExpense.setDescription(expense.getDescription());
-        existingExpense.setDate(expense.getDate());
-        expenseRepo.save(existingExpense);
+    public void updateExpense(ExpenseUpdateDto expense, Long id,String email){
+        Expense existingExpense = expenseRepo
+                .findByIdAndUser_Email(id, email)
+                .orElseThrow(()->new ResourceNotFoundException("Expense doesnt exist for update"));
+        existingExpense
+                .setCategory(findCategoryById(expense.getCategoryId()));
+        existingExpense
+                .setAmount(expense.getAmount());
+        existingExpense
+                .setDescription(expense.getDescription());
+        existingExpense
+                .setDate(expense.getDate());
+        expenseRepo
+                .save(existingExpense);
     }
-    public void deleteExpense(Long id){
-        expenseRepo.deleteById(id);
+    public void deleteExpense(Long id,String email){
+        Expense expense= expenseRepo.
+                findByIdAndUser_Email(id, email)
+                .orElseThrow(()->new ResourceNotFoundException("Resource not found"));
+            expenseRepo.delete(expense);
     }
     public List<Expense> findByUser(User user){
         return expenseRepo.findByUser(user);
@@ -123,9 +162,9 @@ public class ExpenseService { //Dependency injection in Constructions
     }
     public Category findCategoryById(Long id){
         if (id == null) {
-            return null;
+            throw new  IllegalArgumentException("Category ID cannot be null");
         }
-       return categoryRepo.findById(id).orElseThrow();
+       return categoryRepo.findById(id).orElseThrow(()->new ResourceNotFoundException("Category Doesnt exist") );
     }
     public User findUserById(Long id){
         return  userRepo.findById(id).orElseThrow(()->new  ResourceNotFoundException("Expense not found: " + id));

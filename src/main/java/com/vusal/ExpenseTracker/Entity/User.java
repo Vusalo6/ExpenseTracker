@@ -5,8 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigInteger;
 import java.util.List;
 
 @Getter
@@ -18,10 +16,11 @@ import java.util.List;
 public class User {
     @GeneratedValue
     @Id
-    Long id;
-    String name;
-    String surname;
-    String email;
+    private Long id;
+    private String name;
+    private String surname;
+    private String password;
+    private String email;
     @OneToMany(mappedBy = "user")
     List<Expense> expenses;
 

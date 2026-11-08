@@ -1,5 +1,6 @@
 package com.vusal.ExpenseTracker.controllers;
 import com.vusal.ExpenseTracker.Entity.User;
+import com.vusal.ExpenseTracker.dto.UserRegistrationDto;
 import com.vusal.ExpenseTracker.dto.UserRequestDto;
 import com.vusal.ExpenseTracker.dto.UserResponseDto;
 import com.vusal.ExpenseTracker.service.UserService;
@@ -27,12 +28,8 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createUser(@Valid @RequestBody UserRequestDto user){
-        User newUser = new User();
-        newUser.setName(user.getName());
-        newUser.setEmail(user.getEmail());
-        newUser.setSurname(user.getSurname());
-        userService.saveUser(newUser);
+    public void createUser(@Valid @RequestBody UserRegistrationDto user){
+        userService.registerUser(user);
     }
     @PutMapping("/{id}")
     public void updateUser(@Valid @RequestBody UserRequestDto user,@PathVariable Long id){

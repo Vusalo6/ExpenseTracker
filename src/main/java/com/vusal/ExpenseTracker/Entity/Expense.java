@@ -1,6 +1,7 @@
 package com.vusal.ExpenseTracker.Entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,7 +25,8 @@ public class Expense {
     @GeneratedValue
     @Id
     Long id;
-
+    @NotNull
+            @Column(nullable = false)
     BigDecimal amount;
     LocalDate date;
     String description;

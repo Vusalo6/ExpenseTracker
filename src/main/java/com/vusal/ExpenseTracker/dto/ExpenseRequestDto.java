@@ -12,8 +12,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class ExpenseRequestDto {
-
-    private Long userId;
+    @NotNull(message = "Category Id is required")
     private Long categoryId;
     @NotNull(message = "amount is required")
     @Positive(message = "amount must be greater than 0")
@@ -22,6 +21,5 @@ public class ExpenseRequestDto {
     private LocalDate date;
     @NotBlank(message = "Description is required")
     private String description;
-
 
 }

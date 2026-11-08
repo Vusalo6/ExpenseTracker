@@ -1,0 +1,153 @@
+package com.vusal.ExpenseTracker.controllers;
+
+import com.vusal.ExpenseTracker.Entity.Category;
+import com.vusal.ExpenseTracker.Entity.Expense;
+import com.vusal.ExpenseTracker.Entity.User;
+import com.vusal.ExpenseTracker.dto.ExpenseListResponseDto;
+import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
+import com.vusal.ExpenseTracker.service.ExpenseService;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest( controllers = ExpenseController.class)
+class ExpenseControllerTest {
+
+    @Autowired
+    MockMvc mockMvc;
+
+    @Autowired
+    ObjectMapper objectMapper;
+
+    @MockitoBean
+    ExpenseService expenseService;
+
+
+    @Test
+    void createExpense_validRequest_returnsCreated() throws Exception {
+
+        // ARRANGE
+
+        String email = "test@gmail.com";
+
+        ExpenseRequestDto dto = new ExpenseRequestDto();
+        dto.setCategoryId(1L);
+        dto.setAmount(BigDecimal.valueOf(100));
+        dto.setDate(LocalDate.of(2026, 11, 8));
+        dto.setDescription("AA");
+
+
+        // ACT
+        mockMvc.perform(
+                        post("/expense")
+                                .with(jwt().jwt(token -> token.subject(email)))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isCreated());
+
+
+        // Verify
+
+        ArgumentCaptor<ExpenseRequestDto> captor =
+                ArgumentCaptor.forClass(ExpenseRequestDto.class);
+
+        verify(expenseService).createExpense(captor.capture(), eq(email));
+
+        ExpenseRequestDto capturedDto = captor.getValue();
+
+        assertEquals(dto.getCategoryId(), capturedDto.getCategoryId());
+        assertEquals(dto.getAmount(), capturedDto.getAmount());
+        assertEquals(dto.getDate(), capturedDto.getDate());
+        assertEquals(dto.getDescription(), capturedDto.getDescription());
+    }
+
+    @Test
+    void createExpenseWhenAmountIsZero() throws Exception {
+        //Arrange
+        ExpenseRequestDto dto = new ExpenseRequestDto();
+        String email = "test@gmail.com";
+        dto.setAmount(BigDecimal.valueOf(0));
+        dto.setDate(LocalDate.of(2026,11,11));
+        dto.setDescription("AA");
+        dto.setCategoryId(1L);
+
+        //ACT
+        mockMvc.perform(post("/expense")
+                .with(jwt().jwt(token->token.subject(email)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
+        //Verify
+        verify(expenseService,never()).createExpense(any(ExpenseRequestDto.class),eq(email));
+
+    }
+    @Test
+    void getExpense()throws Exception {
+        //Arrange
+        String email = "test@gmail.com";
+        Long id =1L;
+        Category category = new Category();
+        User user =new User();
+        Expense expense = new Expense();
+        expense.setId(1L);
+        expense.setCategory(category);
+        expense.setUser(user);
+        expense.setAmount(BigDecimal.valueOf(100));
+        expense.setDate(LocalDate.now());
+        expense.setDescription("AA");
+
+        when(expenseService.returnExpenseForUser(id,email)).thenReturn(expense);
+        //Act & Assert
+        mockMvc.perform(
+                get("/expense/{id}",id)
+                        .with(jwt().jwt(token->token.subject(email)))
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("AA"))
+                .andExpect(jsonPath("$.id").value(1L));
+
+
+        //Verify
+        verify(expenseService).returnExpenseForUser(id,email);
+    }
+    @Test
+    void getAuthenticatedUserExpenses()throws Exception {
+        //Arrange
+        String email = "test@email.com";
+        ExpenseListResponseDto dto = new ExpenseListResponseDto();
+        dto.setTotal(BigDecimal.valueOf(100));
+
+        when(expenseService.getExpensesForAuthenticatedUser(email))
+                .thenReturn(dto);
+        //Act
+        mockMvc.perform(get("/expense/me/expenses")
+                .with(jwt().jwt(token->token.subject(email)))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(BigDecimal.valueOf(100)));
+
+        //Asser & Verify
+        verify(expenseService).getExpensesForAuthenticatedUser(email);
+    }
+
+
+}
+
