@@ -60,6 +60,7 @@ public class ExpenseController {
        expenseService.createExpense(expenseRequestDto,jwt.getSubject());
     }
     @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public void updateExpense(@Valid @RequestBody ExpenseUpdateDto expense, @PathVariable Long id,@AuthenticationPrincipal Jwt jwt){
         expenseService.updateExpense(expense, id,jwt.getSubject());
     }
@@ -70,7 +71,7 @@ public class ExpenseController {
         expenseService.deleteExpense(id,jwt.getSubject());
     }
 
-    @GetMapping("/user/{userId}/expenses")
+    @GetMapping("/user/me/expenses")
     public ExpenseListResponseDto getExpenses(
             @PathVariable Long userId,
             @RequestParam(required = false) Long categoryId,
