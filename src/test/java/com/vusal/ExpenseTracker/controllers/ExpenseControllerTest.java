@@ -3,7 +3,7 @@ package com.vusal.ExpenseTracker.controllers;
 import com.vusal.ExpenseTracker.Entity.Category;
 import com.vusal.ExpenseTracker.Entity.Expense;
 import com.vusal.ExpenseTracker.Entity.User;
-import com.vusal.ExpenseTracker.dto.ExpenseListResponseDto;
+import com.vusal.ExpenseTracker.dto.ExpenseResponseDtoList;
 import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
 import com.vusal.ExpenseTracker.service.ExpenseService;
@@ -18,7 +18,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -136,7 +135,7 @@ class ExpenseControllerTest {
     void getAuthenticatedUserExpenses()throws Exception {
         //Arrange
         String email = "test@email.com";
-        ExpenseListResponseDto dto = new ExpenseListResponseDto();
+        ExpenseResponseDtoList dto = new ExpenseResponseDtoList();
         dto.setTotal(BigDecimal.valueOf(100));
 
         when(expenseService.getExpensesForAuthenticatedUser(email))

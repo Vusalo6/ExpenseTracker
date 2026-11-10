@@ -11,10 +11,15 @@ import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-@ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> illegalArgumentExceptionHandler(IllegalArgumentException e){
-    ErrorResponse errorResponse =new ErrorResponse(400,e.getMessage(), LocalDateTime.now());
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> illegalArgumentExceptionHandler(IllegalArgumentException e)
+    {
+    ErrorResponse errorResponse =new ErrorResponse
+            (400,e.getMessage(), LocalDateTime.now());
+
+    return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST).body(errorResponse);
 
 }
 @ExceptionHandler(ResourceNotFoundException.class)

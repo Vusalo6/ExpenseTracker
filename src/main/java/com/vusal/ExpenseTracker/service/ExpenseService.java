@@ -2,20 +2,23 @@ package com.vusal.ExpenseTracker.service;
 import com.vusal.ExpenseTracker.Entity.Category;
 import com.vusal.ExpenseTracker.Entity.Expense;
 import com.vusal.ExpenseTracker.Entity.User;
-import com.vusal.ExpenseTracker.dto.ExpenseListResponseDto;
+import com.vusal.ExpenseTracker.dto.ExpenseResponseDtoList;
 import com.vusal.ExpenseTracker.dto.ExpenseRequestDto;
 import com.vusal.ExpenseTracker.dto.ExpenseResponseDto;
 import com.vusal.ExpenseTracker.dto.ExpenseUpdateDto;
+import com.vusal.ExpenseTracker.enums.Period;
 import com.vusal.ExpenseTracker.exception.ResourceNotFoundException;
 import com.vusal.ExpenseTracker.repos.CategoryRepo;
 import com.vusal.ExpenseTracker.repos.ExpenseRepo;
 import com.vusal.ExpenseTracker.repos.UserRepo;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -38,7 +41,7 @@ public class ExpenseService {
         }
         return total;
     }
-    public ExpenseListResponseDto getExpensesForAuthenticatedUser(String email) {
+    public ExpenseResponseDtoList getExpensesForAuthenticatedUser(String email) {
 
         User user = userRepo.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -59,7 +62,7 @@ public class ExpenseService {
 
         BigDecimal total = getTotal(expenses);
 
-        return new ExpenseListResponseDto(responseDtos, total);
+        return new ExpenseResponseDtoList(responseDtos, total);
     }
     public Expense returnExpenseForUser(Long id,String email){
        return expenseRepo.findByIdAndUser_Email(id,email).orElseThrow(()->new ResourceNotFoundException("Expense not found "));
@@ -111,54 +114,129 @@ public class ExpenseService {
     public List<Expense> findByUser(User user){
         return expenseRepo.findByUser(user);
     }
-    public List<Expense> findByUserAndCategory(User user, Category category){
-        return expenseRepo.findByUserAndCategory(user,category);
+    public ExpenseResponseDtoList findByUserAndCategory(String email, Long categoryId){
+
+        User user = userRepo.findUserByEmail(email)
+                .orElseThrow(()->new ResourceNotFoundException("User doesnt exist"));
+
+        Category category = findCategoryById(categoryId);
+
+
+        List<ExpenseResponseDto> expenseResponseDtos =new ArrayList<>();
+
+        List<Expense> expenses =
+                expenseRepo.findByUserAndCategory(user, category);
+        BigDecimal total =BigDecimal.ZERO;
+
+        for (Expense e:expenses){
+            ExpenseResponseDto expenseResponseDto = new ExpenseResponseDto();
+            expenseResponseDto.setId(e.getId());
+            expenseResponseDto.setCategoryName(e.getCategory().getName());
+            expenseResponseDto.setDate(e.getDate());
+            expenseResponseDto.setAmount(e.getAmount());
+            expenseResponseDto.setDescription(e.getDescription());
+            total=total.add(e.getAmount());
+            expenseResponseDtos.add(expenseResponseDto);
+
+
+        }
+        return  new ExpenseResponseDtoList(expenseResponseDtos,total);
 
     }
-    public List<Expense> findByUserAndDate(User user, LocalDate date){
-      return expenseRepo.findByUserAndDate(user, date);
-    }
-    public List<Expense> getByUserAndDatesBetween(User user,LocalDate fromDate,LocalDate toDate){
-      long days = ChronoUnit.DAYS.between(fromDate,toDate);
-      if (days<0){
-          throw new IllegalArgumentException("from Date cannot be after toDate");
-      }
-      if (days>90) {
-          throw new IllegalArgumentException("Date range cannot exceed 90 days");
-      }
-       return  expenseRepo.findByUserAndDateBetween(user, fromDate, toDate);
+    public ExpenseResponseDtoList findByUserAndDate(String email, LocalDate date){
+        User user =userRepo
+                .findUserByEmail(email)
+                .orElseThrow(()->new ResourceNotFoundException("User doesnt exist"));
+        List<Expense> expenseList= expenseRepo.findByUserAndDate(user, date);
+        List<ExpenseResponseDto> listOfExpenseResponseDtos = new ArrayList<>();
+        BigDecimal total =BigDecimal.ZERO;
+        for(Expense e: expenseList){
+            ExpenseResponseDto expenseResponseDto = new ExpenseResponseDto();
+            expenseResponseDto.setDescription(e.getDescription());
+            expenseResponseDto.setDate(e.getDate());
+            expenseResponseDto.setId(e.getId());
+            expenseResponseDto.setCategoryName(e.getCategory().getName());
+            expenseResponseDto.setAmount(e.getAmount());
 
+            listOfExpenseResponseDtos.add(expenseResponseDto);
+            total=total.add(e.getAmount());
+        }
+        return new ExpenseResponseDtoList(listOfExpenseResponseDtos,total);
     }
-    public List<Expense> getThisWeekExpenses(User user){
+    public ExpenseResponseDtoList getByUserAndPeriod(String email, Period period){
+        User user =userRepo
+                .findUserByEmail(email)
+                .orElseThrow(()->new ResourceNotFoundException("User doesnt exists"));
+
+
         LocalDate today =LocalDate.now();
-        LocalDate monday= today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate sunday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        LocalDate startDate;
+        LocalDate endDate;
+        List<Expense> expenses =new ArrayList<>();
+        List<ExpenseResponseDto> responseDtoList=new ArrayList<>();
+        BigDecimal total = BigDecimal.ZERO;
+        switch (period){
+            case THIS_WEEK -> {
+                startDate= today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                endDate =today;
+                expenses =expenseRepo.findByUserAndDateBetween(user, startDate, endDate);
+            }
+            case LAST_WEEK -> {
+                LocalDate thisWeekStart =today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                startDate =thisWeekStart.minusWeeks(1);
+                endDate=thisWeekStart.minusDays(1);
+                expenses =expenseRepo.findByUserAndDateBetween(user, startDate, endDate);
+            }
+            case THIS_MONTH -> {
+                startDate = today.withDayOfMonth(1);
+                endDate = today;
+                expenses =expenseRepo.findByUserAndDateBetween(user, startDate, endDate);
+            }
 
-      return   expenseRepo.findByUserAndDateBetween(user,monday,sunday);
+            case LAST_MONTH -> {
+                LocalDate lastMonth = today.minusMonths(1);
+
+                startDate = lastMonth.withDayOfMonth(1);
+                endDate = lastMonth.with(
+                        TemporalAdjusters.lastDayOfMonth());
+                expenses =expenseRepo.findByUserAndDateBetween(user, startDate, endDate);
+            }
+
+        }
+        for(Expense e:expenses){
+            ExpenseResponseDto responseDto =new ExpenseResponseDto();
+            responseDto.setAmount(e.getAmount());
+            responseDto.setDate(e.getDate());
+            responseDto.setCategoryName(e.getCategory().getName());
+            responseDto.setId(e.getId());
+            responseDto.setDescription(e.getDescription());
+            total=total.add(e.getAmount());
+            responseDtoList.add(responseDto);
+
+        }
+
+       return new ExpenseResponseDtoList(responseDtoList,total);
 
     }
-    public List<Expense> getLastWeekExpenses(User user){
-        LocalDate today=LocalDate.now();
-        LocalDate mondayOfLastWeek = today.with(TemporalAdjusters.previous(DayOfWeek.MONDAY));
-        LocalDate sundayOfLastWeek  = mondayOfLastWeek.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
-        return expenseRepo.findByUserAndDateBetween(user,mondayOfLastWeek,sundayOfLastWeek);
-    }
 
-    public List<Expense> getThisMonthExpenses(User user){
-        LocalDate today =LocalDate.now();
-        LocalDate firstDayOfMonth = today.with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate lastDayOfMonth = today.with(TemporalAdjusters.lastDayOfMonth());
-        return expenseRepo.findByUserAndDateBetween(user,firstDayOfMonth,lastDayOfMonth);
-    }
-    public List<Expense> getLastMonthExpenses(User user){ // how de we get user
-        LocalDate today = LocalDate.now();
-        LocalDate previousMonth = today.minusMonths(1);
-        LocalDate firstDayOfLastMonth = previousMonth.with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate lastDayOfLastMonth = previousMonth.with(TemporalAdjusters.lastDayOfMonth());
-        return expenseRepo.findByUserAndDateBetween(user,firstDayOfLastMonth,lastDayOfLastMonth);
-    }
-    public List<Expense> findByUserAndCategoryAndDate(User user, Category category, LocalDate time){
-        return expenseRepo.findByUserAndCategoryAndDate(user,category,time);
+    public ExpenseResponseDtoList findByUserAndCategoryAndDate(String email, Long categoryId, LocalDate date){
+        User user =userRepo.findUserByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
+        Category category=findCategoryById(categoryId);
+        List<Expense> expenseList = expenseRepo.findByUserAndCategoryAndDate(user,category,date);
+        List<ExpenseResponseDto> listOfExpenseResponseDtos= new ArrayList<>();
+        BigDecimal total= BigDecimal.ZERO;
+        for (Expense e:expenseList){
+            ExpenseResponseDto expenseResponseDto =new ExpenseResponseDto();
+            expenseResponseDto.setAmount(e.getAmount());
+            expenseResponseDto.setDate(e.getDate());
+            expenseResponseDto.setDescription(e.getDescription());
+            expenseResponseDto.setId(e.getId());
+            expenseResponseDto.setCategoryName(e.getCategory().getName());
+            total= total.add(e.getAmount());
+            listOfExpenseResponseDtos.add(expenseResponseDto);
+
+        }
+        return new ExpenseResponseDtoList(listOfExpenseResponseDtos,total);
     }
     public Category findCategoryById(Long id){
         if (id == null) {

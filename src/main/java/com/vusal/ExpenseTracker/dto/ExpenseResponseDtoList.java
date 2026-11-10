@@ -9,12 +9,12 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
     @Setter
-    public class ExpenseListResponseDto {
+    public class ExpenseResponseDtoList {
 
         private List<ExpenseResponseDto> expenses;
         private BigDecimal total;
 
-        public ExpenseListResponseDto(List<ExpenseResponseDto> expenses, BigDecimal total) {
+        public ExpenseResponseDtoList(List<ExpenseResponseDto> expenses, BigDecimal total) {
             this.expenses = expenses;
             this.total = total;
         }
